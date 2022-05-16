@@ -1,0 +1,25 @@
+{
+    "manifest_version": 3,
+    "name": "Convenient Searcher",
+    "version": "0.0.1",
+    "description": "Googleの検索結果を並び替えたり抽出したり形態素解析をしたりして使いやすくする",
+    "author": "sena-takahashi",
+    "icons": {
+        "16":  "public/imgs/extension_icon16.png",
+        "32":  "public/imgs/extension_icon32.png",
+        "48":  "public/imgs/extension_icon48.png",
+        "128": "public/imgs/extension_icon128.png"
+    },
+    "content_scripts": [
+      {
+        "matches": ["https://www.google.com/search?*"],
+        "css":["style.css"],
+        "js": ["tiny_segmenter-0.2.js","content.js"]
+      }
+    ],
+    "background": {"service_worker": "background.js"},
+    "permissions": [
+      "storage"
+    ],
+    "options_page": "public/options.html"
+  }
