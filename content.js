@@ -12,6 +12,12 @@ var callback = function(){
     //console.log(document.querySelector("#res").innerText.replace(/\r?\n/g, ''));  //検索結果すべての文字
     const seapsResult=document.querySelector("#res").innerText.replace(/\r?\n/g, '');
 
+    //検索結果に順位をつける
+    const rankItems = document.body.querySelector("#res").querySelectorAll('.g');
+    rankItems.forEach(function(item,index){
+        item.querySelector("h3").textContent=index+1+"位:"+item.querySelector("h3").textContent
+    });
+
     //関連キーワード上部へ移動
     const insert_element= document.getElementById("bres");
     // 複製
@@ -48,17 +54,23 @@ var callback = function(){
     for (const element of aryCheck) {
         const newLi=document.createElement("li");
         const newA=document.createElement("a");
-        newA.textContent=element.key
-        newA.setAttribute('href', '#');
+        newA.setAttribute('class', 'tanabotaA'); 
+        const newDiv=document.createElement("div");
+        newDiv.textContent=element.key
         const newSpan=document.createElement("span");
         newSpan.textContent=element.value;
+        newA.appendChild(newDiv);
         newA.appendChild(newSpan);
         newLi.appendChild(newA);
         ListElementUl.appendChild(newLi);
     };
     //検索結果画面にリストを表示
     insert_place.insertBefore(ListElementUl, search_element);
-
+    document.querySelectorAll('.tanabotaA').forEach(function(cards){
+        cards.addEventListener('click',function(){
+            displayNone(cards.getElementsByTagName("div")[0].innerText);
+        });
+    });
 };
   if (
       document.readyState === "complete" ||
@@ -107,3 +119,15 @@ function wordHighright(wordsList){  // 検索文字 をハイライトする (�
         };
     };
 }
+
+function displayNone(text){
+    const G_items = document.body.querySelector("#res").querySelectorAll('.g');
+    G_items.forEach((item) => {
+        if (item.textContent.indexOf(text) != -1) {    //https://qiita.com/kazu56/items/557740f398e82fc881df
+            //タイトル・ディスクリプションに単語を含む場合の処理
+            item.style.display = '';//空文字を値を入れて表示させる
+        }else{
+            item.style.display = 'none';
+        };
+    });
+};
