@@ -5,18 +5,42 @@ var callback = function(){
     console.log(nowURL);
     console.log("-----------------------------");
 
+    
+    //検索結果に順位をつけるのと同時に形態素解析用のリストarray_seapsを作成する
+    let array_seaps=[]
+    const rankItems = document.body.querySelector("#res").querySelectorAll('.g');
+    let index_count=1;
+    rankItems.forEach(function(item,index){
+        try {
+            afterHTML=item.innerHTML;
+            let tempdiv = document.createElement('div');
+            tempdiv.innerHTML = afterHTML; //html要素に変換
+            //他の人はこちらも検索を削除(style=display:noneの削除、スペースやコロンに注意)
+            let remove_elements=tempdiv.querySelectorAll('div[style*="display:none"]');
+            remove_elements.forEach((div) => {
+                div.parentNode.removeChild(div);
+            });
+            //cite(titleの上にあるurlとパンクズ)を削除
+            remove_elements=tempdiv.querySelectorAll('cite');
+            remove_elements.forEach((div) => {
+                div.parentNode.removeChild(div);
+            });
+
+            console.log(tempdiv.textContent.replace(/https?:\/\//g,""));
+            array_seaps=array_seaps.concat(DivideIntoWords(tempdiv.textContent.replace(/https?:\/\//g,"")));
+            item.querySelector("h3").textContent=index_count+"位:"+item.querySelector("h3").textContent
+            index_count=index_count+1;
+        } catch (error) {
+            console.log(error);
+        };
+    });
+
     //検索KWDハイライト
     const searchWords=document.querySelector("input[name='q']").value.replaceAll("　", " ").split(/\s+/);
     console.log(searchWords);
     wordHighright(searchWords);
     //console.log(document.querySelector("#res").innerText.replace(/\r?\n/g, ''));  //検索結果すべての文字
     const seapsResult=document.querySelector("#res").innerText.replace(/\r?\n/g, '');
-
-    //検索結果に順位をつける
-    const rankItems = document.body.querySelector("#res").querySelectorAll('.g');
-    rankItems.forEach(function(item,index){
-        item.querySelector("h3").textContent=index+1+"位:"+item.querySelector("h3").textContent
-    });
 
     //関連キーワード上部へ移動
     const insert_element= document.getElementById("bres");
@@ -26,27 +50,24 @@ var callback = function(){
     const insert_place=document.getElementById("res");
     // 指定した要素の中の末尾に挿入
     insert_place.insertBefore(clone_element, search_element);
-
     //検索結果形態素解析
-    let arrayH3=[]
-    let h3_elements = document.querySelector("#res").getElementsByTagName('h3');
-    for( let i = 0; i < h3_elements.length; i++  ){
-        //console.log(h3_elements[i].textContent);
-        arrayH3=arrayH3.concat(DivideIntoWords(h3_elements[i].textContent));
-    }
-    arrayH3=toCountDict(arrayH3);
+    array_seaps=toCountDict(array_seaps);
     //キーを含んだ配列に変換 オブジェクト⇒配列
-    let array = Object.keys(arrayH3).map((k)=>({ key: k, value: arrayH3[k] }));
+    let array = Object.keys(array_seaps).map((k)=>({ key: k, value: array_seaps[k] }));
     //出現頻度順
     array.sort((a, b) => b.value - a.value);
-    //ひらがなを削除と出現回数が2回以上のKWDに絞る
+    //ひらがな,記号を削除と出現回数が2回以上のKWDに絞る
     const aryCheck = array.filter(value => {
-        if(value.key.match(/^.[ぁ-んー]*$/)||value.value<2){
+        if(value.key.match(/^.[ぁ-んー!"#$%&'()\*\+\-\.,\/\s›:;<=>?@\[\\\]^_`{|}~s]*$/)||value.value<2){
             return false;
         };
         return true;
     });
-    //console.log(aryCheck);
+    console.log(aryCheck);
+
+    //divを作成する
+    const div=document.createElement("div");   // <div></div>
+    div.setAttribute('id', 'morpheme_center_col'); 
     // ul要素を作成する
     const ListElementUl=document.createElement("ul");   // <ul></ul>
     ListElementUl.setAttribute('class', 'tanabota'); //<ul class="tanabota"></ul>
@@ -64,8 +85,21 @@ var callback = function(){
         newLi.appendChild(newA);
         ListElementUl.appendChild(newLi);
     };
-    //検索結果画面にリストを表示
-    insert_place.insertBefore(ListElementUl, search_element);
+    //ulをdivの中へ入れる
+    div.appendChild(ListElementUl);
+    //検索結果画面にリストを表示・・・上部LSIの下に配置したい場合
+    //insert_place.insertBefore(ListElementUl, search_element);
+    //検索結果のサイドカラムに表示したい場合
+    search_element.appendChild(div);
+
+    //表示を揃える center_colがなかったらright: -500px;
+    const rhs = document.getElementById("rhs");
+    if (rhs === null){
+        // 存在しない場合の処理
+        div.style.right="-430px";
+        div.style.width="400px";
+    };
+    //クリック時のアクションを設定
     document.querySelectorAll('.tanabotaA').forEach(function(cards){
         cards.addEventListener('click',function(){
             displayNone(cards.getElementsByTagName("div")[0].innerText);
@@ -84,7 +118,7 @@ var callback = function(){
 function DivideIntoWords(words){    //分かち書き
     var segmenter = new TinySegmenter();                 // インスタンス生成
     var segs = segmenter.segment(words);  // 単語の配列が返る
-    console.log(segs.join(" | "));  // 表示
+    //console.log(segs.join(" | "));  // 表示
     return segs
 }
 
@@ -103,8 +137,16 @@ function wordHighright(wordsList){  // 検索文字 をハイライトする (�
         const color = (Math.random() * 0xFFFFFF | 0).toString(16);  //カラーのランダム生成
         const randomColor = "#" + ("000000" + color).slice(-6); //https://q-az.net/random-color-code/
         const reg = new RegExp(elem, "gi"); //正規表現で文字列を検索できるようにする準備
-        const $bodyText = document.body.querySelector("#res").innerHTML;    //置換したい範囲を選択
-        document.body.querySelector("#res").innerHTML=$bodyText.replace(reg, "<span style='background-color:"+randomColor+"'>"+elem+"</span>"); //置換実行
+        const G_items = document.body.querySelector("#res").querySelectorAll('.g');
+        if(!elem.match(/^([a-zA-Z0-9!-/:-@¥[-`{-~|]{0,3})$/)){
+            G_items.forEach((item) => {
+                if (item.textContent.indexOf(elem) != -1) {    //https://qiita.com/kazu56/items/557740f398e82fc881df
+                    item.innerHTML=item.innerHTML.replace(reg, "<span style='background-color:"+randomColor+"'>"+elem+"</span>"); //置換実行
+                };
+            });
+        };
+        // const $bodyText = document.body.querySelector("#res").innerHTML;    //置換したい範囲を選択
+        // document.body.querySelector("#res").innerHTML=$bodyText.replace(reg, "<span style='background-color:"+randomColor+"'>"+elem+"</span>"); //置換実行
     };
     var links = document.body.querySelector("#res").querySelectorAll("img");
     for (const i of links.keys()) { // 画像を正規表現で判定
@@ -118,8 +160,9 @@ function wordHighright(wordsList){  // 検索文字 をハイライトする (�
             links[i].href=backupOriginalA[i].href;   //hrefを書き換え
         };
     };
-}
 
+};
+//liタグがクリックされた時に検索結果にフィルタをかける
 function displayNone(text){
     const G_items = document.body.querySelector("#res").querySelectorAll('.g');
     G_items.forEach((item) => {
@@ -131,3 +174,9 @@ function displayNone(text){
         };
     });
 };
+
+/*やることメモ
+・形態素解析の結果にhtmlが混じってる気がするので除外する　→ twitterのカルーセルが出ている時にfunction~~が混じってるっぽい
+・liタグをクリックした時にdisplay:noneになってるテキストが混じってる気がするので除外する
+・liタグをクリックした時にクリックした文字のハイライトをする
+*/
