@@ -47,8 +47,11 @@ var callback = function(){
             //console.log(tempdiv.textContent.replace(/https?:\/\//g,""));
             array_seaps=array_seaps.concat(DivideIntoWords(tempdiv.textContent.replace(/https?:\/\//g,"")));
             //検索結果に順位を表示する
-            item.querySelector("h3").textContent=index_count+"位:"+item.querySelector("h3").textContent
-            index_count=index_count+1;
+            if(item.querySelector("h2")==null){
+                item.querySelector("h3").textContent=index_count+"位:"+item.querySelector("h3").textContent
+                index_count=index_count+1;
+            };
+
         } catch (error) {
             console.log(error);
         };
